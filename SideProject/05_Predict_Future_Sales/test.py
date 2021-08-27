@@ -68,7 +68,41 @@ def list_if_not(s, dtype=str):
         s = [s]
     return s
 
-s = pd.Series(np.array([1.1,1.4,2.5]))
+import re
 
-s = reduce_mem_usage(s, silent=False)
-print(s)
+from fuzzywuzzy import fuzz
+
+def add_item_name_groups(matrix, train, items, sim_thresh, feature_name="item_name_group"):
+    def partialmatchgroups(items, sim_thresh=sim_thresh):
+        def strip_brackets(string):
+            string = re.sub(r"\(.*?\)", "", string)
+            string = re.sub(r"\[.*?\]", "", string)
+            return string
+
+        items = items.copy()
+        items["nc"] = items.item_name.apply(strip_brackets)
+        items["ncnext"] = np.concatenate((items["nc"].to_numpy()[1:], np.array([""])))
+
+        def partialcompare(s):
+            return fuzz.partial_ratio(s["nc"], s["ncnext"])
+
+        items["partialmatch"] = items.apply(partialcompare, axis=1)
+        # Assign groups
+        grp = 0
+        for i in range(items.shape[0]):
+            items.loc[i, "partialmatchgroup"] = grp
+            if items.loc[i, "partialmatch"] < sim_thresh:
+                grp += 1
+        items = items.drop(columns=["nc", "ncnext", "partialmatch"])
+        return items
+
+    items = partialmatchgroups(items)
+    items = items.rename(columns={"partialmatchgroup": feature_name})
+    items = items.drop(columns="partialmatchgroup", errors="ignore")
+
+    items[feature_name] = items[feature_name].apply(str)
+    items[feature_name] = items[feature_name].factorize()[0]
+    matrix = matrix.merge(items[["item_id", feature_name]], on="item_id", how="left")
+    train = train.merge(items[["item_id", feature_name]], on="item_id", how="left")
+    return matrix, train
+
