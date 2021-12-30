@@ -84,6 +84,12 @@ class FeatureEngineering:
             s = [s]
         return s
 
+    def _month_feature_engineering(self):
+        logger.info('Start month feature engineering.')
+        self.matrix['month'] = (self.matrix.dt % 12) + 1
+        self._shrink_mem_new_cols(allow_categorical=False)
+        logger.info('Finish month feature engineering.')
+
     # 每種類別的人均購買次數
     def _shop_tag_mean_txn(self):
         shop_tag_features = self.matrix.groupby(['shop_tag', 'chid'])['txn_cnt'].sum().reset_index()
@@ -440,9 +446,54 @@ class FeatureEngineering:
         gc.collect()
         logger.info('Finish simple lag feature engineering.')
 
+    def _create_apply_ME(
+            self, grouping_fields, lags=[1], target="txn_amt", aggfunc="mean"
+        ):
+        grouping_fields = self._list_if_not(grouping_fields)
+        for lag in lags:
+            newname = "_".join(grouping_fields +
+                            [target] + [aggfunc] + [f"lag_{lag}"])
+            print(f"Adding feature {newname}")
+            me_series = (
+                self.matrix.groupby(["dt"] + grouping_fields)[target]
+                .agg(aggfunc)
+                .rename(newname)
+                .reset_index()
+            )
+            me_series["dt"] += lag
+            self.matrix = self.matrix.merge(
+                me_series, on=["dt"] + grouping_fields, how="left")
+            del me_series
+            self.matrix[newname] = self.matrix[newname].fillna(0)
+            for g in grouping_fields:
+                firsts = self.matrix.groupby(g).dt.min().rename("firsts")
+                self.matrix = self.matrix.merge(
+                    firsts, left_on=g, right_index=True, how="left")
+                self.matrix.loc[
+                    self.matrix["dt"] < (self.matrix["firsts"] + (lag)), newname
+                ] = float("nan")
+                del self.matrix["firsts"]
+            self.matrix[newname] = self._reduce_mem_usage(self.matrix[newname])
+
+    def _create_apply_ME_feature_engineering(self):
+        logger.info('Start ME feature engineering.')
+        self._create_apply_ME(["shop_tag"], target="txn_amt")
+        self._create_apply_ME(["shop_tag_cluster"], target="txn_amt")
+        self._create_apply_ME(["trdtp"], target="txn_amt")
+        self._create_apply_ME(["trdtp_cluster"], target="txn_amt")
+        self._create_apply_ME(["chid"], target="txn_amt")
+        self._create_apply_ME(["educd"], target="txn_amt")
+        self._create_apply_ME(["poscd"], target="txn_amt")
+        self._create_apply_ME(["masts", "gender_code", "age"], target="txn_amt")
+        self._shrink_mem_new_cols(allow_categorical=False)
+        gc.collect()
+        logger.info('Finish ME feature engineering.')
+
     def execute(self):
+        self._month_feature_engineering()
         self._shop_tag_feature_engineering()
         self._cluster_feature_engineering()
         self._pct_change_feature_engineeing()
         self._rolling_feature_engineering()
+        self._create_apply_ME_feature_engineering()
         logger.removeHandler(self.chlr)
