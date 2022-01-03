@@ -122,16 +122,16 @@ class FeatureEngineering:
         components = pca.fit_transform(pt)
         components = pd.DataFrame(components)
         # Plot PCA explained variance
-        sns.set()
-        features = list(range(pca.n_components_))
-        fig = plt.figure(figsize=(10,4))
-        ax = fig.add_subplot(121)
-    #     ax.bar(features, pca.explained_variance_ratio_, color="black")
-        sns.barplot(x=features, y=pca.explained_variance_ratio_, ax=ax)
-        plt.title("Variance by PCA components")
-        plt.xlabel("component")
-        plt.ylabel("explained variance")
-        plt.xticks(features)
+        # sns.set()
+        # features = list(range(pca.n_components_))
+    #     fig = plt.figure(figsize=(10,4))
+    #     ax = fig.add_subplot(121)
+    # #     ax.bar(features, pca.explained_variance_ratio_, color="black")
+    #     sns.barplot(x=features, y=pca.explained_variance_ratio_, ax=ax)
+    #     plt.title("Variance by PCA components")
+    #     plt.xlabel("component")
+    #     plt.ylabel("explained variance")
+    #     plt.xticks(features)
 
         scorelist = []
         nrange = range(2, 10)
@@ -140,11 +140,11 @@ class FeatureEngineering:
             labels = clusterer.fit_predict(components)
             silscore = silhouette_score(pt, labels)
             scorelist.append(silscore)
-        ax = fig.add_subplot(122)
-        sns.lineplot(x=nrange, y=scorelist, ax=ax)
-        plt.title("Clustering quality by number of clusters")
-        plt.xlabel("n clusters")
-        plt.ylabel("silhouette score")
+        # ax = fig.add_subplot(122)
+        # sns.lineplot(x=nrange, y=scorelist, ax=ax)
+        # plt.title("Clustering quality by number of clusters")
+        # plt.xlabel("n clusters")
+        # plt.ylabel("silhouette score")
 
         pca = PCA(n_components=n_components)
         components = pca.fit_transform(pt)
@@ -153,14 +153,14 @@ class FeatureEngineering:
         labels = clusterer.fit_predict(components)
         x = components[0]
         y = components[1]
-        fig = plt.figure(figsize=(10, 4))
-        ax = fig.add_subplot(111)
-        sns.scatterplot(x=x, y=y, hue=labels, palette=sns.color_palette("hls", n_clusters), ax=ax)
-        plt.title("Items by cluster")
-        plt.xlabel("component 1 score")
-        plt.ylabel("component 2 score")
-        for i, txt in enumerate(pt.index.to_list()):
-            ax.annotate(str(txt), (x[i], y[i]))
+        # fig = plt.figure(figsize=(10, 4))
+        # ax = fig.add_subplot(111)
+        # sns.scatterplot(x=x, y=y, hue=labels, palette=sns.color_palette("hls", n_clusters), ax=ax)
+        # plt.title("Items by cluster")
+        # plt.xlabel("component 1 score")
+        # plt.ylabel("component 2 score")
+        # for i, txt in enumerate(pt.index.to_list()):
+        #     ax.annotate(str(txt), (x[i], y[i]))
         groups = {}
         for i, s in enumerate(pt.index):
             groups[s] = labels[i]
