@@ -92,12 +92,13 @@ class FeatureEngineering:
 
     # 每種類別的人均購買次數
     def _shop_tag_mean_txn(self):
-        shop_tag_features = self.matrix.groupby(['shop_tag', 'chid'])['txn_cnt'].sum().reset_index()
+        shop_tag_features = self.matrix.query('dt<=24').groupby(['shop_tag', 'chid'])['txn_cnt'].sum().reset_index()
         shop_tag_features = shop_tag_features.groupby(['shop_tag'])['txn_cnt'].mean().reset_index(name='shop_tag_mean_txn')
         self.matrix = self.matrix.merge(shop_tag_features, on=['shop_tag'])
     # 每種類別的人均購買頻次
     def _shop_tag_frequency_txn(self):
-        shop_tag_features = self.matrix.query('txn_cnt > 0').groupby(['shop_tag', 'chid'])['dt'].nunique().reset_index(name='dt_cnt')
+        shop_tag_features = self.matrix.query('dt<=24 and txn_cnt > 0').groupby(
+            ['shop_tag', 'chid'])['dt'].nunique().reset_index(name='dt_cnt')
         shop_tag_features = shop_tag_features.groupby(['shop_tag'])['dt_cnt'].mean().reset_index(name='shop_tag_frequency_txn')
         self.matrix = self.matrix.merge(shop_tag_features, on=['shop_tag'])
 
@@ -441,8 +442,9 @@ class FeatureEngineering:
 
     def _simple_lag_feature_engineering(self):
         logger.info('Start simple lag feature engineering.')
-        self._simple_lag_feature('txn_amt', lags=[1,2,3])
+        self._simple_lag_feature('txn_amt', lags=[1, 2, 3])
         self._simple_lag_feature('txn_cnt', lags=[1, 2, 3])
+        self._simple_lag_feature('slam', lags=[1])
         gc.collect()
         logger.info('Finish simple lag feature engineering.')
 
@@ -483,7 +485,10 @@ class FeatureEngineering:
         self._create_apply_ME(["trdtp_cluster"], target="txn_amt")
         self._create_apply_ME(["chid"], target="txn_amt")
         self._create_apply_ME(["educd"], target="txn_amt")
+        self._create_apply_ME(["educd", "shop_tag"], target="txn_amt")
+        self._create_apply_ME(["educd", "poscd"], target="txn_amt")
         self._create_apply_ME(["poscd"], target="txn_amt")
+        self._create_apply_ME(["poscd", "shop_tag"], target="txn_amt")
         self._create_apply_ME(["masts", "gender_code", "age"], target="txn_amt")
         self._shrink_mem_new_cols(allow_categorical=False)
         gc.collect()

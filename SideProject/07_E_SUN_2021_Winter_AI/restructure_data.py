@@ -7,6 +7,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class DataRestructuring:
     BASIC_FORMAT = "%(asctime)s-%(levelname)s-%(message)s"
     chlr = logging.StreamHandler()
@@ -15,38 +16,44 @@ class DataRestructuring:
     logger.addHandler(chlr)
     # 預先定義好的list，包含要預測的shop tag或目前要使用的columns
     SHOP_TAG_LIST = ['2', '6', '10', '12',
-                    '13', '15', '18', '19',
-                    '21', '22', '25', '26',
-                    '36', '37', '39', '48']
-    COL_LIST = ['dt', 'chid', 'shop_tag', 'txn_cnt', 'txn_amt', 'domestic_offline_cnt',
-        'domestic_online_cnt', 'overseas_offline_cnt', 'overseas_online_cnt',
-        'domestic_offline_amt_pct', 'domestic_online_amt_pct',
-        'overseas_offline_amt_pct', 'overseas_online_amt_pct', 'card_1_txn_cnt',
-        'card_2_txn_cnt', 'card_3_txn_cnt', 'card_4_txn_cnt', 'card_5_txn_cnt',
-        'card_6_txn_cnt', 'card_7_txn_cnt', 'card_8_txn_cnt', 'card_9_txn_cnt',
-        'card_10_txn_cnt', 'card_11_txn_cnt', 'card_12_txn_cnt',
-        'card_13_txn_cnt', 'card_14_txn_cnt', 'card_other_txn_cnt',
-        'card_1_txn_amt_pct', 'card_2_txn_amt_pct', 'card_3_txn_amt_pct',
-        'card_4_txn_amt_pct', 'card_5_txn_amt_pct', 'card_6_txn_amt_pct',
-        'card_7_txn_amt_pct', 'card_8_txn_amt_pct', 'card_9_txn_amt_pct',
-        'card_10_txn_amt_pct', 'card_11_txn_amt_pct', 'card_12_txn_amt_pct',
-        'card_13_txn_amt_pct', 'card_14_txn_amt_pct', 'card_other_txn_amt_pct',
-        'masts', 'educd', 'trdtp', 'naty', 'poscd', 'cuorg', 'slam',
-        'gender_code', 'age', 'primary_card']
+                     '13', '15', '18', '19',
+                     '21', '22', '25', '26',
+                     '36', '37', '39', '48']
+    COL_LIST = ['dt', 'chid', 'shop_tag', 'txn_cnt', 'txn_amt',
+                # 'domestic_offline_cnt',
+                # 'domestic_online_cnt', 'overseas_offline_cnt', 'overseas_online_cnt',
+                # 'domestic_offline_amt_pct', 'domestic_online_amt_pct',
+                # 'overseas_offline_amt_pct', 'overseas_online_amt_pct', 'card_1_txn_cnt',
+                # 'card_2_txn_cnt', 'card_3_txn_cnt', 'card_4_txn_cnt', 'card_5_txn_cnt',
+                # 'card_6_txn_cnt', 'card_7_txn_cnt', 'card_8_txn_cnt', 'card_9_txn_cnt',
+                # 'card_10_txn_cnt', 'card_11_txn_cnt', 'card_12_txn_cnt',
+                # 'card_13_txn_cnt', 'card_14_txn_cnt', 'card_other_txn_cnt',
+                # 'card_1_txn_amt_pct', 'card_2_txn_amt_pct', 'card_3_txn_amt_pct',
+                # 'card_4_txn_amt_pct', 'card_5_txn_amt_pct', 'card_6_txn_amt_pct',
+                # 'card_7_txn_amt_pct', 'card_8_txn_amt_pct', 'card_9_txn_amt_pct',
+                # 'card_10_txn_amt_pct', 'card_11_txn_amt_pct', 'card_12_txn_amt_pct',
+                # 'card_13_txn_amt_pct', 'card_14_txn_amt_pct', 'card_other_txn_amt_pct',
+                'masts', 'educd', 'trdtp', 'naty', 'poscd', 'cuorg', 'slam',
+                'gender_code', 'age', 'primary_card']
+
     def __init__(self, df_train_path, df_test_path, start_index, number):
         self.df_train_path = df_train_path
         if os.path.isfile(self.df_train_path) == False:
-            raise Exception(f'The train data file path is wrong: {self.df_train_path}.')
+            raise Exception(
+                f'The train data file path is wrong: {self.df_train_path}.')
         self.df_test_path = df_test_path
         if os.path.isfile(self.df_test_path) == False:
-            raise Exception(f'The test data file path is wrong: {self.df_test_path}.')
+            raise Exception(
+                f'The test data file path is wrong: {self.df_test_path}.')
         self.start_index = start_index
         self.number = number
 
     def _read_test_data_limited(self):
         logger.info('Start reading test data.')
         df_test = pd.read_csv(self.df_test_path)
-        df_test = df_test[self.start_index: self.start_index+self.number].reset_index(drop=True)
+        df_test = df_test[self.start_index: self.start_index +
+                          self.number].reset_index(drop=True)
+        df_test.chid = df_test.chid.astype('int32')
         logger.info(f'Test data shape: {df_test.shape}')
         logger.info('Finish reading test data.')
         self._df_test = df_test
@@ -54,24 +61,27 @@ class DataRestructuring:
     def _read_train_data_by_chunk(self, chunksize=100000):
         logger.info('Start reading train data.')
         reader = pd.read_csv(self.df_train_path,
-                            error_bad_lines=False, # 會自動忽略錯誤row
-                            # header=None, # 看資料有無欄位名稱
-                            iterator=True,
-                            usecols=self.COL_LIST  #限縮要取的資料欄位
-                            )
+                             error_bad_lines=False,  # 會自動忽略錯誤row
+                             # header=None, # 看資料有無欄位名稱
+                             iterator=True,
+                             usecols=self.COL_LIST  # 限縮要取的資料欄位
+                             )
         loop = True
         chunks = []
         while loop:
             try:
                 chunk = reader.get_chunk(chunksize)
-                chunk = chunk[chunk.chid.isin(self._df_test.chid)]    #只取測試資料的前10,000 chid
-                chunk = chunk[chunk.shop_tag.isin(self.SHOP_TAG_LIST)]   #指取要預測的消費類別
+                # 只取測試資料的前10,000 chid
+                chunk = chunk[chunk.chid.isin(self._df_test.chid)]
+                chunk = chunk[chunk.shop_tag.isin(
+                    self.SHOP_TAG_LIST)]  # 指取要預測的消費類別
                 chunks.append(chunk)
             except StopIteration:
                 loop = False
                 print("Iteration is stopped.")
-        df = pd.concat(chunks,ignore_index=True)
+        df = pd.concat(chunks, ignore_index=True)
         df.shop_tag = df.shop_tag.astype('int8')
+        df.chid = df.chid.astype('int32')
         df = self._reduce_mem_usage(df=df, silent=False)
         logger.info('Finish reading train data.')
         return df
@@ -112,27 +122,41 @@ class DataRestructuring:
             df = _downcast_numeric(df)
         else:
             for col in df.columns:
-                df.loc[:, col] = _downcast_numeric(df.loc[:,col])
+                df.loc[:, col] = _downcast_numeric(df.loc[:, col])
         if silent is False:
             end_mem = np.sum(df.memory_usage()) / 1024 ** 2
-            print("Memory usage after optimization is: {:.2f} MB".format(end_mem))
-            print("Decreased by {:.1f}%".format(100 * (start_mem - end_mem) / start_mem))
+            print(
+                "Memory usage after optimization is: {:.2f} MB".format(end_mem))
+            print("Decreased by {:.1f}%".format(
+                100 * (start_mem - end_mem) / start_mem))
 
         return df
 
     def _create_matrix_full(self, df_train):
+        person_feature = ['masts', 'educd', 'trdtp',
+                          'naty', 'poscd', 'cuorg', 'slam', 'gender_code', 'age',
+                          'primary_card']
         logger.info('Start creating training matrix.')
+        df_person_features = df_train.drop_duplicates(subset='chid', keep='last')[
+            ['chid'] + person_feature].reset_index(drop=True)
         indexlist = []
-        x = itertools.product(df_train.dt.unique(), self._df_test.chid.unique(), self.SHOP_TAG_LIST)
+        x = itertools.product(list(range(1, 26)),
+                              self._df_test.chid.unique(), self.SHOP_TAG_LIST)
         indexlist.append(np.array(list(x)))
         matrix = pd.DataFrame(
-                data=np.concatenate(indexlist, axis=0),
-                columns=["dt", "chid", "shop_tag"])
+            data=np.concatenate(indexlist, axis=0),
+            columns=["dt", "chid", "shop_tag"])
         matrix.dt = matrix.dt.astype('int8')
         matrix.chid = matrix.chid.astype('int32')
         matrix.shop_tag = matrix.shop_tag.astype('int8')
-        matrix = matrix.merge(df_train, on=['dt', 'chid', 'shop_tag'], how='left')
-        matrix.fillna(0, inplace=True)
+        matrix = matrix.merge(
+            df_train.drop(columns=person_feature), on=['dt', 'chid', 'shop_tag'], how='left')
+        matrix = matrix.merge(
+            df_person_features, on=['chid'], how='left')
+        # 'txn_cnt', 'txn_amt', 'slam'
+        matrix.txn_cnt.fillna(0, inplace=True)
+        matrix.txn_amt.fillna(0, inplace=True)
+        matrix.slam.fillna(0, inplace=True)
         matrix = self._reduce_mem_usage(df=matrix, silent=False)
         self._matrix = matrix
         gc.collect()
